@@ -1445,38 +1445,258 @@ let studyKnown = 0;
 let studyAgain = 0;
 let history = []; // screen history
 
-// Progress: { categoryId: Set of known card indices }
-function loadProgress() {
+// ============================================================
+// 艾宾浩斯间隔重复记忆系统 (Ebbinghaus Spaced Repetition System)
+// ============================================================
+
+// ---------- 核心常量 ----------
+const SRS_INTERVALS = [0, 1, 5, 30, 720, 1440, 4320, 10080, 21600, 43200];
+const DAILY_NEW_LIMIT = 20;
+const SRS_STORAGE_KEY = 'vocabSRS';
+const CHECKIN_STORAGE_KEY = 'vocabCheckin';
+
+// ---------- SRS 数据层 ----------
+function loadSRS() {
   try {
-    const raw = localStorage.getItem('toyEnglishProgress');
-    if (!raw) return {};
-    const parsed = JSON.parse(raw);
-    // Convert arrays back to Sets
-    Object.keys(parsed).forEach(k => { parsed[k] = new Set(parsed[k]); });
-    return parsed;
+    const raw = localStorage.getItem(SRS_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : {};
   } catch { return {}; }
 }
-function saveProgress() {
-  const toSave = {};
-  Object.keys(progress).forEach(k => { toSave[k] = [...progress[k]]; });
-  localStorage.setItem('toyEnglishProgress', JSON.stringify(toSave));
+function saveSRS() {
+  localStorage.setItem(SRS_STORAGE_KEY, JSON.stringify(srsData));
 }
-let progress = loadProgress();
+let srsData = loadSRS();
 
+function srsKey(catId, cardIdx) {
+  return catId + ':' + cardIdx;
+}
+function getSRS(catId, cardIdx) {
+  return srsData[srsKey(catId, cardIdx)] || null;
+}
+
+// ---------- 核心算法 ----------
+function reviewCard(catId, cardIdx, known) {
+  const key = srsKey(catId, cardIdx);
+  const now = Date.now();
+  let record = srsData[key] || { level: 0, nextReview: now, lastReview: 0, reviewCount: 0 };
+  if (known) {
+    record.level = Math.min(record.level + 1, SRS_INTERVALS.length - 1);
+  } else {
+    record.level = 1;
+  }
+  const intervalMinutes = SRS_INTERVALS[record.level];
+  record.nextReview = now + intervalMinutes * 60 * 1000;
+  record.lastReview = now;
+  record.reviewCount += 1;
+  srsData[key] = record;
+  saveSRS();
+  updateCheckinOnReview(catId, cardIdx);
+}
+
+function isCardMastered(catId, cardIdx) {
+  const record = getSRS(catId, cardIdx);
+  return record ? record.level >= 5 : false;
+}
+function isCardDueForReview(catId, cardIdx) {
+  const record = getSRS(catId, cardIdx);
+  if (!record) return false;
+  return Date.now() >= record.nextReview;
+}
+function isCardNew(catId, cardIdx) {
+  return !srsData[srsKey(catId, cardIdx)];
+}
+
+// ---------- 筛选函数 ----------
+function getDueCards(catId) {
+  const cat = APP_DATA.find(c => c.id === catId);
+  if (!cat) return [];
+  const now = Date.now();
+  const results = [];
+  cat.cards.forEach((card, idx) => {
+    const record = getSRS(catId, idx);
+    if (record && now >= record.nextReview) {
+      results.push({ catId, cardIdx: idx, card, srs: record });
+    }
+  });
+  results.sort((a, b) => a.srs.nextReview - b.srs.nextReview);
+  return results;
+}
+function getAllDueCards() {
+  const results = [];
+  APP_DATA.forEach(cat => results.push(...getDueCards(cat.id)));
+  results.sort((a, b) => a.srs.nextReview - b.srs.nextReview);
+  return results;
+}
+function getNewCards(catId, limit) {
+  limit = limit || DAILY_NEW_LIMIT;
+  const cat = APP_DATA.find(c => c.id === catId);
+  if (!cat) return [];
+  const results = [];
+  for (let idx = 0; idx < cat.cards.length; idx++) {
+    if (isCardNew(catId, idx)) {
+      results.push({ catId, cardIdx: idx, card: cat.cards[idx], srs: null });
+      if (results.length >= limit) break;
+    }
+  }
+  return results;
+}
+function getAllNewCards(limit) {
+  limit = limit || DAILY_NEW_LIMIT;
+  const checkin = loadCheckin();
+  const remaining = Math.max(0, limit - (checkin.todayNew || 0));
+  if (remaining <= 0) return [];
+  const results = [];
+  for (const cat of APP_DATA) {
+    if (results.length >= remaining) break;
+    results.push(...getNewCards(cat.id, remaining - results.length));
+  }
+  return results;
+}
+
+// ---------- 统计函数（兼容原有接口）----------
 function getKnownCount(catId) {
-  return progress[catId] ? progress[catId].size : 0;
+  const cat = APP_DATA.find(c => c.id === catId);
+  if (!cat) return 0;
+  let count = 0;
+  for (let i = 0; i < cat.cards.length; i++) {
+    if (isCardMastered(catId, i)) count++;
+  }
+  return count;
 }
 function isKnown(catId, idx) {
-  return progress[catId] ? progress[catId].has(idx) : false;
+  const record = getSRS(catId, idx);
+  return record ? record.level >= 1 : false;
 }
 function setKnown(catId, idx, known) {
-  if (!progress[catId]) progress[catId] = new Set();
-  if (known) progress[catId].add(idx); else progress[catId].delete(idx);
-  saveProgress();
+  reviewCard(catId, idx, known);
 }
-
 function totalCards() { return APP_DATA.reduce((s, c) => s + c.cards.length, 0); }
 function totalKnown() { return APP_DATA.reduce((s, c) => s + getKnownCount(c.id), 0); }
+
+function getCategoryStats(catId) {
+  const cat = APP_DATA.find(c => c.id === catId);
+  if (!cat) return { total: 0, mastered: 0, learning: 0, newCount: 0, dueCount: 0 };
+  let mastered = 0, learning = 0, newCount = 0, dueCount = 0;
+  cat.cards.forEach((card, idx) => {
+    const record = getSRS(catId, idx);
+    if (!record) { newCount++; }
+    else if (record.level >= 5) { mastered++; }
+    else { learning++; }
+    if (record && Date.now() >= record.nextReview) dueCount++;
+  });
+  return { total: cat.cards.length, mastered, learning, newCount, dueCount };
+}
+function getGlobalStats() {
+  let total = 0, mastered = 0, learning = 0, newCount = 0, dueCount = 0;
+  APP_DATA.forEach(cat => {
+    const s = getCategoryStats(cat.id);
+    total += s.total; mastered += s.mastered; learning += s.learning;
+    newCount += s.newCount; dueCount += s.dueCount;
+  });
+  return { total, mastered, learning, newCount, dueCount };
+}
+
+// ---------- 打卡系统 ----------
+function getToday() {
+  const d = new Date();
+  return d.getFullYear() + '-' +
+    String(d.getMonth() + 1).padStart(2, '0') + '-' +
+    String(d.getDate()).padStart(2, '0');
+}
+function getYesterday() {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  return d.getFullYear() + '-' +
+    String(d.getMonth() + 1).padStart(2, '0') + '-' +
+    String(d.getDate()).padStart(2, '0');
+}
+function loadCheckin() {
+  try {
+    const raw = localStorage.getItem(CHECKIN_STORAGE_KEY);
+    const data = raw ? JSON.parse(raw) : {
+      dates: [], streak: 0, todayNew: 0, todayReview: 0, lastDate: ''
+    };
+    const today = getToday();
+    if (data.lastDate !== today) {
+      data.todayNew = 0;
+      data.todayReview = 0;
+      data.lastDate = today;
+    }
+    return data;
+  } catch {
+    return { dates: [], streak: 0, todayNew: 0, todayReview: 0, lastDate: '' };
+  }
+}
+function saveCheckin(data) {
+  localStorage.setItem(CHECKIN_STORAGE_KEY, JSON.stringify(data));
+}
+function updateCheckinOnReview(catId, cardIdx) {
+  const checkin = loadCheckin();
+  const key = srsKey(catId, cardIdx);
+  const record = srsData[key];
+  if (record && record.reviewCount <= 1) {
+    checkin.todayNew += 1;
+  } else {
+    checkin.todayReview += 1;
+  }
+  checkin.lastDate = getToday();
+  saveCheckin(checkin);
+}
+function doCheckin() {
+  const checkin = loadCheckin();
+  const today = getToday();
+  const yesterday = getYesterday();
+  if (!checkin.dates.includes(today)) {
+    checkin.dates.push(today);
+    checkin.streak = checkin.dates.includes(yesterday) ? checkin.streak + 1 : 1;
+  }
+  saveCheckin(checkin);
+  return checkin;
+}
+function getCheckinInfo() {
+  const checkin = loadCheckin();
+  const today = getToday();
+  return {
+    streak: checkin.streak,
+    todayNew: checkin.todayNew,
+    todayReview: checkin.todayReview,
+    checkedToday: checkin.dates.includes(today),
+    totalDays: checkin.dates.length
+  };
+}
+
+// ---------- 数据迁移 ----------
+function migrateOldProgress() {
+  if (localStorage.getItem('srs_migrated') === 'yes') return;
+  try {
+    const raw = localStorage.getItem('toyEnglishProgress');
+    if (!raw) { localStorage.setItem('srs_migrated', 'yes'); return; }
+    const oldProgress = JSON.parse(raw);
+    const now = Date.now();
+    Object.keys(oldProgress).forEach(catId => {
+      const indices = Array.isArray(oldProgress[catId]) ? oldProgress[catId] : [];
+      indices.forEach(idx => {
+        const key = srsKey(catId, idx);
+        if (!srsData[key]) {
+          srsData[key] = {
+            level: 5,
+            nextReview: now + 1440 * 60 * 1000,
+            lastReview: now,
+            reviewCount: 1
+          };
+        }
+      });
+    });
+    saveSRS();
+    localStorage.setItem('srs_migrated', 'yes');
+    console.log('旧数据迁移完成！');
+  } catch (e) {
+    console.error('迁移失败:', e);
+  }
+}
+
+// APP 启动时自动迁移旧数据
+migrateOldProgress();
 
 // ============================================================
 // NAVIGATION
@@ -1842,11 +2062,13 @@ function renderProgress() {
 }
 
 function confirmReset() {
-  if (confirm('确定要重置所有学习进度吗？')) {
-    progress = {};
-    saveProgress();
-    renderProgress();
+  if (confirm('确定要重置所有学习进度吗？这将清除所有记忆数据。')) {
+    srsData = {};
+    saveSRS();
+    localStorage.removeItem(CHECKIN_STORAGE_KEY);
+    localStorage.removeItem('srs_migrated');
     renderHome();
+    renderProgress();
   }
 }
 
