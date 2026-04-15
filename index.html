@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="外贸英语">
@@ -36,6 +36,8 @@
 
   html {
     height: 100%;
+    overscroll-behavior: none;
+    touch-action: pan-y;
   }
 
   body {
@@ -74,6 +76,12 @@
     opacity: 0;
     transform: translateX(-30px);
   }
+
+  /* Hide tab bar when study or category screen is active */
+  .tab-bar.hidden { display: none !important; }
+
+  /* Study & category screens sit above everything */
+  #screen-study, #screen-category { z-index: 200; }
 
   /* ========== NAV BAR ========== */
   .navbar {
@@ -966,9 +974,6 @@
     <div id="checkin-banner"></div>
     <div class="daily-actions" id="daily-actions"></div>
     <div class="stats-row" id="home-stats"></div>
-    <div class="section-title">全部分类</div>
-    <div class="category-list" id="category-list"></div>
-    <div style="height:8px"></div>
   </div>
 </div>
 
@@ -1083,27 +1088,23 @@
   </div>
 </div>
 
-<!-- ===== SEARCH SCREEN ===== -->
+<!-- ===== SEARCH / BROWSE SCREEN ===== -->
 <div class="screen" id="screen-search">
   <div class="navbar">
     <div class="home-header" style="padding:0;">
-      <div class="greeting">快速查找</div>
-      <div class="large-title" style="font-size:28px;">搜索</div>
+      <div class="greeting">词汇查找</div>
+      <div class="large-title" style="font-size:28px;">搜索与分类</div>
     </div>
   </div>
   <div class="search-bar-wrap">
     <div class="search-bar">
       <span class="search-icon">🔍</span>
-      <input type="search" id="search-input" placeholder="输入英文或中文..." autocomplete="off" autocorrect="off" spellcheck="false" oninput="onSearch(this.value)">
+      <input type="search" id="search-input" placeholder="搜索单词、中文、备注..." autocomplete="off" autocorrect="off" spellcheck="false" oninput="onSearch(this.value)">
       <button class="search-clear" id="search-clear-btn" onclick="clearSearch()">✕</button>
     </div>
   </div>
   <div class="search-results" id="search-results">
-    <div class="search-empty">
-      <div class="search-empty-icon">🔎</div>
-      <div class="search-empty-text">搜索词汇</div>
-      <div class="search-empty-sub">支持英文、中文、备注</div>
-    </div>
+    <!-- default: show categories, replaced by search results when typing -->
   </div>
 </div>
 
@@ -1114,8 +1115,8 @@
     <span class="tab-label">学习</span>
   </div>
   <div class="tab-item" data-tab="search" onclick="switchTab('search')">
-    <span class="tab-icon">🔍</span>
-    <span class="tab-label">搜索</span>
+    <span class="tab-icon">📂</span>
+    <span class="tab-label">分类</span>
   </div>
   <div class="tab-item" data-tab="progress" onclick="switchTab('progress')">
     <span class="tab-icon">📊</span>
@@ -1890,6 +1891,7 @@ migrateOldProgress();
 // ============================================================
 function switchTab(tab) {
   currentTab = tab;
+  document.getElementById('tab-bar').classList.remove('hidden');
   document.querySelectorAll('.tab-item').forEach(el => {
     el.classList.toggle('active', el.dataset.tab === tab);
   });
@@ -1903,6 +1905,7 @@ function switchTab(tab) {
 
   if (tab === 'progress') renderProgress();
   if (tab === 'home') renderHome();
+  if (tab === 'search') renderCategoryBrowse();
 }
 
 function showScreen(id, pushHistory = true) {
@@ -1923,17 +1926,25 @@ function showScreen(id, pushHistory = true) {
     target.style.opacity = '';
   });
   if (pushHistory) history.push(id);
+
+  // Hide tab bar in study/category screens
+  const tabBar = document.getElementById('tab-bar');
+  if (id === 'screen-study' || id === 'screen-category') {
+    tabBar.classList.add('hidden');
+  } else {
+    tabBar.classList.remove('hidden');
+  }
 }
 
 function goBack() {
   if (history.length <= 1) {
     switchTab(currentTab);
+    document.getElementById('tab-bar').classList.remove('hidden');
     history = [];
     return;
   }
   history.pop();
   const prev = history[history.length - 1];
-  // slide current out to right
   const current = document.querySelector('.screen.active');
   if (current) {
     current.style.transition = 'opacity 0.25s ease, transform 0.25s ease';
@@ -1957,6 +1968,14 @@ function goBack() {
       target.style.opacity = '1';
       setTimeout(() => { target.style.transition = ''; }, 300);
     });
+  }
+
+  // Restore tab bar if going back to main screens
+  const tabBar = document.getElementById('tab-bar');
+  if (prev === 'screen-home' || prev === 'screen-search' || prev === 'screen-progress') {
+    tabBar.classList.remove('hidden');
+  } else {
+    tabBar.classList.add('hidden');
   }
 }
 
@@ -2008,25 +2027,6 @@ function renderHome() {
     <div class="stat-card"><div class="stat-number blue">${stats.total}</div><div class="stat-label">总词汇</div></div>
     <div class="stat-card"><div class="stat-number green">${stats.mastered}</div><div class="stat-label">已掌握</div></div>
     <div class="stat-card"><div class="stat-number orange">${stats.learning}</div><div class="stat-label">学习中</div></div>`;
-
-  // 分类列表（带到期角标）
-  document.getElementById('category-list').innerHTML = APP_DATA.map(cat => {
-    const cs = getCategoryStats(cat.id);
-    const pct = cs.total ? Math.round(cs.mastered / cs.total * 100) : 0;
-    const circumference = 2 * Math.PI * 12;
-    const dash = circumference * pct / 100;
-    const dueBadge = cs.dueCount > 0 ? `<span class="cat-due-badge">${cs.dueCount}</span>`
-      : (cs.newCount === 0 ? `<span class="cat-due-badge green-bg">✓</span>` : '');
-    const subText = cs.dueCount > 0 ? cs.dueCount + '个待复习' : cs.newCount > 0 ? cs.newCount + '个新词' : '已全部掌握';
-    return `
-    <div class="category-item" onclick="openCategory('${cat.id}')">
-      <div class="cat-icon" style="background:${cat.color}22;">${cat.icon}</div>
-      <div class="cat-info"><div class="cat-name">${cat.name}</div><div class="cat-sub">${subText}</div></div>
-      <div class="cat-right">${dueBadge}<span class="cat-count">${cs.mastered}/${cs.total}</span>
-        <svg class="cat-progress-ring" viewBox="0 0 28 28"><circle cx="14" cy="14" r="12" fill="none" stroke="#E5E5EA" stroke-width="2.5"/><circle cx="14" cy="14" r="12" fill="none" stroke="${cat.color}" stroke-width="2.5" stroke-dasharray="${dash} ${circumference}" stroke-dashoffset="${circumference/4}" stroke-linecap="round" transform="rotate(-90 14 14)"/></svg>
-        <span class="cat-chevron">›</span></div>
-    </div>`;
-  }).join('');
 }
 
 // 复习模式（跨分类）
@@ -2544,12 +2544,7 @@ function onSearch(val) {
   clearBtn.classList.toggle('visible', val.length > 0);
 
   if (!val.trim()) {
-    document.getElementById('search-results').innerHTML = `
-      <div class="search-empty">
-        <div class="search-empty-icon">🔎</div>
-        <div class="search-empty-text">搜索词汇</div>
-        <div class="search-empty-sub">支持英文、中文、备注</div>
-      </div>`;
+    renderCategoryBrowse();
     return;
   }
 
@@ -2592,6 +2587,35 @@ function onSearch(val) {
       `).join('')}
     </div>
   `;
+}
+
+/**
+ * 渲染分类浏览列表（搜索页默认状态）
+ */
+function renderCategoryBrowse() {
+  document.getElementById('search-results').innerHTML = `
+    <div style="padding:0 20px;">
+      <div class="section-title" style="padding-left:16px;">全部分类</div>
+      <div class="category-list">
+        ${APP_DATA.map(cat => {
+          const cs = getCategoryStats(cat.id);
+          const pct = cs.total ? Math.round(cs.mastered / cs.total * 100) : 0;
+          const circumference = 2 * Math.PI * 12;
+          const dash = circumference * pct / 100;
+          const dueBadge = cs.dueCount > 0 ? `<span class="cat-due-badge">${cs.dueCount}</span>`
+            : (cs.newCount === 0 ? `<span class="cat-due-badge green-bg">✓</span>` : '');
+          const subText = cs.dueCount > 0 ? cs.dueCount + '个待复习' : cs.newCount > 0 ? cs.newCount + '个新词' : '已全部掌握';
+          return `
+          <div class="category-item" onclick="openCategory('${cat.id}')">
+            <div class="cat-icon" style="background:${cat.color}22;">${cat.icon}</div>
+            <div class="cat-info"><div class="cat-name">${cat.name}</div><div class="cat-sub">${subText}</div></div>
+            <div class="cat-right">${dueBadge}<span class="cat-count">${cs.mastered}/${cs.total}</span>
+              <svg class="cat-progress-ring" viewBox="0 0 28 28"><circle cx="14" cy="14" r="12" fill="none" stroke="#E5E5EA" stroke-width="2.5"/><circle cx="14" cy="14" r="12" fill="none" stroke="${cat.color}" stroke-width="2.5" stroke-dasharray="${dash} ${circumference}" stroke-dashoffset="${circumference/4}" stroke-linecap="round" transform="rotate(-90 14 14)"/></svg>
+              <span class="cat-chevron">›</span></div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
 }
 
 function clearSearch() {
