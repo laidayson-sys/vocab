@@ -368,7 +368,7 @@
   }
   .word-known-dot.known { background: var(--green); }
 
-  /* ========== STUDY / FLASHCARD SCREEN ========== */
+  /* ========== STUDY SCREEN (judgment + detail + spelling) ========== */
   .study-progress-bar {
     height: 4px;
     background: var(--bg3);
@@ -392,122 +392,275 @@
     flex-shrink: 0;
   }
 
-  .card-area {
+  /* Phase: judge — show word only */
+  .judge-area {
     flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-    perspective: 1200px;
-  }
-
-  .flashcard {
-    width: 100%;
-    max-width: 380px;
-    aspect-ratio: 3/2;
-    position: relative;
-    transform-style: preserve-3d;
-    transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    cursor: pointer;
-  }
-  .flashcard.flipped { transform: rotateY(180deg); }
-
-  .card-face {
-    position: absolute;
-    inset: 0;
-    border-radius: 20px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 28px 24px;
-    backface-visibility: hidden;
-    -webkit-backface-visibility: hidden;
+    padding: 40px 24px;
   }
-  .card-front {
-    background: white;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06);
-  }
-  .card-back {
-    background: var(--blue);
-    transform: rotateY(180deg);
-    box-shadow: 0 8px 32px rgba(0,122,255,0.35), 0 2px 8px rgba(0,0,0,0.06);
-  }
-
-  .card-hint {
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    color: var(--gray);
-    margin-bottom: 16px;
-    opacity: 0.7;
-  }
-  .card-back .card-hint { color: rgba(255,255,255,0.7); }
-
-  .card-main-text {
-    font-size: 24px;
+  .judge-word {
+    font-size: 32px;
     font-weight: 700;
-    text-align: center;
     letter-spacing: -0.5px;
-    line-height: 1.25;
+    text-align: center;
+    line-height: 1.3;
     color: var(--label);
+    margin-bottom: 12px;
   }
-  .card-back .card-main-text { color: white; font-size: 26px; }
-
-  .card-note {
+  .judge-blur {
+    width: 200px;
+    height: 18px;
+    border-radius: 9px;
+    background: var(--bg3);
+    margin-bottom: 6px;
+    opacity: 0.5;
+  }
+  .judge-blur-sm {
+    width: 140px;
+    height: 14px;
+    border-radius: 7px;
+    background: var(--bg3);
+    opacity: 0.35;
+  }
+  .judge-hint {
+    position: absolute;
+    bottom: 100px;
+    left: 0; right: 0;
+    text-align: center;
     font-size: 13px;
     color: var(--gray);
-    text-align: center;
-    margin-top: 12px;
-    line-height: 1.4;
-    font-style: italic;
-  }
-  .card-back .card-note { color: rgba(255,255,255,0.75); }
-
-  .card-tap-hint {
-    position: absolute;
-    bottom: 16px;
-    font-size: 11px;
-    color: var(--gray);
+    line-height: 1.6;
     opacity: 0.6;
   }
-  .card-back .card-tap-hint { color: rgba(255,255,255,0.6); }
 
-  /* Action buttons below card */
-  .study-actions {
-    padding: 12px 20px;
+  /* 3-button bar */
+  .judge-buttons {
+    padding: 0 20px;
+    padding-bottom: calc(var(--safe-bottom) + 16px);
     display: flex;
-    gap: 12px;
+    gap: 0;
     flex-shrink: 0;
   }
-  .study-btn {
+  .judge-btn {
     flex: 1;
-    height: 54px;
-    border-radius: 14px;
+    height: 56px;
+    background: none;
+    border: none;
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    transition: opacity 0.12s, transform 0.1s;
+  }
+  .judge-btn:active { opacity: 0.6; transform: scale(0.95); }
+  .judge-btn .jdot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+  .judge-btn.j-know { color: var(--green); }
+  .judge-btn.j-know .jdot { background: var(--green); }
+  .judge-btn.j-fuzzy { color: var(--orange); }
+  .judge-btn.j-fuzzy .jdot { background: var(--orange); }
+  .judge-btn.j-forgot { color: var(--red); }
+  .judge-btn.j-forgot .jdot { background: var(--red); }
+
+  /* Phase: detail — show everything */
+  .detail-area {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 20px 24px;
+    padding-bottom: 100px;
+  }
+  .detail-word-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+  .detail-word {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+    color: var(--label);
+  }
+  .detail-check {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    color: white;
+    flex-shrink: 0;
+  }
+  .detail-check.green { background: var(--green); }
+  .detail-check.orange { background: var(--orange); }
+  .detail-check.red { background: var(--red); }
+  .detail-cn {
+    font-size: 17px;
+    color: var(--label);
+    margin: 12px 0 4px;
+    line-height: 1.5;
+  }
+  .detail-note {
+    font-size: 14px;
+    color: var(--gray);
+    font-style: italic;
+    margin-bottom: 16px;
+    line-height: 1.5;
+  }
+  .detail-example {
+    background: var(--bg2);
+    border-radius: var(--radius-sm);
+    padding: 14px 16px;
+    margin-bottom: 16px;
+  }
+  .detail-example-en {
+    font-size: 15px;
+    color: var(--label);
+    line-height: 1.6;
+    margin-bottom: 4px;
+  }
+  .detail-example-cn {
+    font-size: 13px;
+    color: var(--gray);
+    line-height: 1.5;
+  }
+
+  .detail-buttons {
+    position: fixed;
+    bottom: 0;
+    left: 0; right: 0;
+    padding: 12px 20px;
+    padding-bottom: calc(var(--safe-bottom) + 12px);
+    background: rgba(242,242,247,0.92);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    display: flex;
+    gap: 12px;
+    z-index: 20;
+  }
+  .detail-btn {
+    flex: 1;
+    height: 48px;
+    border-radius: 12px;
     border: none;
     font-family: inherit;
     font-size: 15px;
     font-weight: 600;
     cursor: pointer;
     display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    transition: opacity 0.12s, transform 0.1s;
+  }
+  .detail-btn:active { opacity: 0.7; transform: scale(0.97); }
+  .detail-btn-next { background: var(--green); color: white; }
+  .detail-btn-wrong { background: #FFEEEE; color: var(--red); }
+
+  /* Phase: spelling test */
+  .spell-area {
+    flex: 1;
+    display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 2px;
-    transition: opacity 0.15s, transform 0.1s;
+    padding: 40px 24px;
   }
-  .study-btn:active { opacity: 0.7; transform: scale(0.97); }
-  .study-btn .icon { font-size: 20px; }
-  .study-btn .label { font-size: 11px; font-weight: 500; opacity: 0.8; }
-  .btn-skip { background: #F2F2F7; color: var(--label); }
-  .btn-again { background: #FFEEEE; color: var(--red); }
-  .btn-know { background: #EDFFF3; color: var(--green); }
-
-  .study-nav {
-    padding: 8px 20px;
-    padding-bottom: calc(var(--safe-bottom) + 8px);
+  .spell-dots {
     display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-bottom: 24px;
+  }
+  .spell-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--bg3);
+  }
+  .spell-dot.active { background: var(--blue); }
+  .spell-dot.correct { background: var(--green); }
+  .spell-dot.wrong { background: var(--red); }
+  .spell-cn {
+    font-size: 18px;
+    color: var(--label);
+    text-align: center;
+    line-height: 1.5;
+    margin-bottom: 8px;
+  }
+  .spell-note {
+    font-size: 13px;
+    color: var(--gray);
+    text-align: center;
+    margin-bottom: 32px;
+    font-style: italic;
+  }
+  .spell-input-wrap {
+    width: 100%;
+    max-width: 320px;
+    position: relative;
+  }
+  .spell-input {
+    width: 100%;
+    height: 48px;
+    border: 2px solid var(--bg3);
+    border-radius: 12px;
+    background: var(--bg2);
+    font-family: inherit;
+    font-size: 20px;
+    font-weight: 600;
+    text-align: center;
+    color: var(--label);
+    outline: none;
+    transition: border-color 0.2s;
+    letter-spacing: 1px;
+  }
+  .spell-input:focus { border-color: var(--blue); }
+  .spell-input.correct { border-color: var(--green); background: #EDFFF3; }
+  .spell-input.wrong { border-color: var(--red); background: #FFEEEE; }
+  .spell-answer {
+    text-align: center;
+    font-size: 15px;
+    font-weight: 600;
+    margin-top: 12px;
+    min-height: 22px;
+  }
+  .spell-controls {
+    display: flex;
+    gap: 20px;
+    margin-top: 28px;
+    align-items: center;
+  }
+  .spell-ctrl-btn {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: 1.5px solid var(--bg3);
+    background: var(--bg2);
+    font-size: 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--gray);
+    transition: opacity 0.12s;
+  }
+  .spell-ctrl-btn:active { opacity: 0.6; }
+  .spell-ctrl-btn.primary { background: var(--blue); color: white; border-color: var(--blue); }
     align-items: center;
     justify-content: center;
     gap: 40px;
@@ -843,61 +996,70 @@
     </button>
     <div id="study-title" style="font-size:17px;font-weight:600;"></div>
     <div style="width:60px;text-align:right;">
-      <button class="reset-btn" onclick="shuffleCards()" style="color:var(--blue);font-size:13px;">随机</button>
+      <span id="study-counter" style="font-size:13px;color:var(--gray);font-weight:500;"></span>
     </div>
   </div>
 
-  <!-- Completion view (hidden by default) -->
+  <!-- Completion view -->
   <div class="completion-screen" id="completion-view" style="display:none;">
     <div class="completion-emoji">🎉</div>
     <div class="completion-title">本轮完成！</div>
     <div class="completion-sub" id="completion-sub"></div>
     <div class="completion-stats" id="completion-stats"></div>
     <button class="btn btn-primary" style="width:100%;max-width:320px;" onclick="restartStudy()">再练一轮</button>
-    <button class="btn btn-secondary" style="width:100%;max-width:320px;margin-top:12px;" onclick="goBack()">返回分类</button>
+    <button class="btn btn-secondary" style="width:100%;max-width:320px;margin-top:12px;" onclick="goBack()">返回</button>
   </div>
 
-  <!-- Card view -->
-  <div id="card-view" style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
+  <!-- Main study area (switches between judge/detail/spell) -->
+  <div id="study-main" style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
     <div class="study-progress-bar"><div class="study-progress-fill" id="progress-fill" style="width:0%"></div></div>
-    <div class="study-counter" id="study-counter"></div>
 
-    <div class="card-area" id="card-area">
-      <div class="flashcard" id="flashcard" onclick="flipCard()">
-        <div class="card-face card-front">
-          <div class="card-hint">英文</div>
-          <div class="card-main-text" id="card-en"></div>
-          <div class="card-note" id="card-note-front"></div>
-          <div class="card-tap-hint">点击翻转</div>
-        </div>
-        <div class="card-face card-back">
-          <div class="card-hint">中文</div>
-          <div class="card-main-text" id="card-cn"></div>
-          <div class="card-note" id="card-note-back"></div>
-          <div class="card-tap-hint">点击翻转</div>
-        </div>
+    <!-- PHASE 1: Judge -->
+    <div id="phase-judge" style="display:flex;flex-direction:column;flex:1;">
+      <div class="judge-area" style="position:relative;">
+        <div class="judge-word" id="judge-word"></div>
+        <div class="judge-blur"></div>
+        <div class="judge-blur-sm"></div>
+        <div class="judge-hint">瞬间想起词义，选「认识」<br>思考后想起词义，选「模糊」</div>
+      </div>
+      <div class="judge-buttons">
+        <button class="judge-btn j-know" onclick="onJudge('know')">
+          <span>认识</span><span class="jdot"></span>
+        </button>
+        <button class="judge-btn j-fuzzy" onclick="onJudge('fuzzy')">
+          <span>模糊</span><span class="jdot"></span>
+        </button>
+        <button class="judge-btn j-forgot" onclick="onJudge('forgot')">
+          <span>忘记了</span><span class="jdot"></span>
+        </button>
       </div>
     </div>
 
-    <div class="study-actions" id="study-actions" style="display:none;">
-      <button class="study-btn btn-again" onclick="markCard(false)">
-        <span class="icon">✕</span>
-        <span class="label">再看看</span>
-      </button>
-      <button class="study-btn btn-know" onclick="markCard(true)">
-        <span class="icon">✓</span>
-        <span class="label">认识了</span>
-      </button>
+    <!-- PHASE 2: Detail -->
+    <div id="phase-detail" style="display:none;flex-direction:column;flex:1;">
+      <div class="detail-area" id="detail-area"></div>
+      <div class="detail-buttons">
+        <button class="detail-btn detail-btn-next" onclick="onDetailNext()">下一词</button>
+        <button class="detail-btn detail-btn-wrong" onclick="onDetailWrong()">记错了</button>
+      </div>
     </div>
 
-    <div class="study-nav">
-      <button class="nav-btn" id="btn-prev" onclick="prevCard()">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M15 6L9 12L15 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </button>
-      <span id="study-index-label" style="font-size:15px;color:var(--gray);font-weight:500;"></span>
-      <button class="nav-btn" id="btn-next" onclick="nextCard()">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M9 6L15 12L9 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </button>
+    <!-- PHASE 3: Spelling test -->
+    <div id="phase-spell" style="display:none;flex-direction:column;flex:1;">
+      <div class="spell-area">
+        <div class="spell-dots" id="spell-dots"></div>
+        <div class="spell-cn" id="spell-cn"></div>
+        <div class="spell-note" id="spell-note"></div>
+        <div class="spell-input-wrap">
+          <input type="text" class="spell-input" id="spell-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="拼写英文..." onkeydown="if(event.key==='Enter')checkSpell()">
+        </div>
+        <div class="spell-answer" id="spell-answer"></div>
+        <div class="spell-controls">
+          <button class="spell-ctrl-btn" onclick="skipSpell()" title="跳过">✕</button>
+          <button class="spell-ctrl-btn" onclick="hintSpell()" title="提示">💡</button>
+          <button class="spell-ctrl-btn primary" onclick="checkSpell()" title="确认">✓</button>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -1944,8 +2106,16 @@ function startCategoryReview(catId) {
 }
 
 // ============================================================
-// STUDY LOGIC
+// STUDY LOGIC — 3-phase: Judge → Detail → Spell
 // ============================================================
+let studyPhase = 'judge'; // 'judge' | 'detail' | 'spell'
+let currentJudgment = null; // 'know' | 'fuzzy' | 'forgot'
+let spellQueue = [];    // words to spell-test
+let spellIndex = 0;
+let spellResults = [];  // track correct/wrong per spell word
+const SPELL_EVERY = 10; // trigger spell test every N words
+let wordsSinceSpell = 0;
+
 function startStudy(id, shuffle) {
   const cat = APP_DATA.find(c => c.id === id);
   if (!cat) return;
@@ -1960,7 +2130,6 @@ function startStudyAt(id, index) {
   if (!cat) return;
   currentCategory = cat;
   studyCards = cat.cards.map((card, i) => ({ ...card, originalIndex: i }));
-  // Rotate so selected index is first
   studyCards = [...studyCards.slice(index), ...studyCards.slice(0, index)];
   beginStudy();
 }
@@ -1970,89 +2139,277 @@ function beginStudy() {
   studyFlipped = false;
   studyKnown = 0;
   studyAgain = 0;
+  wordsSinceSpell = 0;
+  spellQueue = [];
 
   document.getElementById('study-title').textContent = currentCategory.name;
   document.getElementById('completion-view').style.display = 'none';
-  document.getElementById('card-view').style.display = 'flex';
-  document.getElementById('card-view').style.flexDirection = 'column';
+  document.getElementById('study-main').style.display = 'flex';
+  document.getElementById('study-main').style.flexDirection = 'column';
 
   showScreen('screen-study');
-  renderCard();
+  showJudge();
 }
 
-function shuffleCards() {
-  if (!currentCategory) return;
-  shuffleArray(studyCards);
-  studyIndex = 0;
-  studyFlipped = false;
-  renderCard();
-}
-
-function renderCard() {
+// ---------- Phase 1: Judge ----------
+function showJudge() {
   if (studyIndex >= studyCards.length) {
+    // Before completion, do a final spell test if there are unspelled words
+    if (spellQueue.length > 0) {
+      startSpellTest();
+      return;
+    }
     showCompletion();
     return;
   }
+
+  studyPhase = 'judge';
   const card = studyCards[studyIndex];
   const total = studyCards.length;
   const pct = total ? (studyIndex / total * 100) : 0;
 
   document.getElementById('progress-fill').style.width = pct + '%';
-  document.getElementById('study-counter').textContent =
-    studyIndex + 1 + ' / ' + total;
-  document.getElementById('study-index-label').textContent =
-    (studyIndex + 1) + ' / ' + total;
-  document.getElementById('card-en').textContent = card.en;
-  document.getElementById('card-cn').textContent = card.cn;
-  const note = card.note || '';
-  document.getElementById('card-note-front').textContent = note;
-  document.getElementById('card-note-back').textContent = note;
+  document.getElementById('study-counter').textContent = (studyIndex + 1) + ' / ' + total;
+  document.getElementById('judge-word').textContent = card.en;
 
-  // Reset flip
-  studyFlipped = false;
-  const fc = document.getElementById('flashcard');
-  fc.classList.remove('flipped');
-  document.getElementById('study-actions').style.display = 'none';
-
-  // Update nav buttons
-  document.getElementById('btn-prev').disabled = studyIndex === 0;
-  document.getElementById('btn-next').disabled = false;
-
-  // Visual indicator if known
-  const catId = card._catId || currentCategory.id;
-  const oi = card.originalIndex;
-  const known = isKnown(catId, oi);
-  fc.querySelector('.card-front').style.border = known
-    ? '2px solid var(--green)' : '2px solid transparent';
+  document.getElementById('phase-judge').style.display = 'flex';
+  document.getElementById('phase-detail').style.display = 'none';
+  document.getElementById('phase-spell').style.display = 'none';
 }
 
-function flipCard() {
-  studyFlipped = !studyFlipped;
-  document.getElementById('flashcard').classList.toggle('flipped', studyFlipped);
-  document.getElementById('study-actions').style.display = studyFlipped ? 'flex' : 'none';
-}
-
-function markCard(known) {
+function onJudge(result) {
+  currentJudgment = result;
   const card = studyCards[studyIndex];
   const catId = card._catId || currentCategory.id;
-  setKnown(catId, card.originalIndex, known);
-  if (known) studyKnown++; else studyAgain++;
-  nextCard();
+
+  // Update SRS based on judgment
+  if (result === 'know') {
+    reviewCard(catId, card.originalIndex, true);
+    studyKnown++;
+  } else if (result === 'forgot') {
+    reviewCard(catId, card.originalIndex, false);
+    studyAgain++;
+  } else {
+    // fuzzy: do a half-step — treat as known but with lower confidence
+    reviewCard(catId, card.originalIndex, true);
+    // Reduce the level by 0.5 (capped at 1)
+    const key = srsKey(catId, card.originalIndex);
+    if (srsData[key] && srsData[key].level > 1) {
+      srsData[key].level = Math.max(1, srsData[key].level - 1);
+      const intervalMinutes = SRS_INTERVALS[srsData[key].level];
+      srsData[key].nextReview = Date.now() + intervalMinutes * 60 * 1000;
+      saveSRS();
+    }
+  }
+
+  // Add to spell queue
+  spellQueue.push({ ...card, _catId: catId });
+
+  showDetail();
 }
 
-function nextCard() {
-  if (studyIndex < studyCards.length - 1) {
-    studyIndex++;
-    renderCard();
+// ---------- Phase 2: Detail ----------
+function showDetail() {
+  studyPhase = 'detail';
+  const card = studyCards[studyIndex];
+
+  const checkColor = currentJudgment === 'know' ? 'green' : currentJudgment === 'fuzzy' ? 'orange' : 'red';
+  const checkIcon = currentJudgment === 'know' ? '✓' : currentJudgment === 'fuzzy' ? '~' : '✕';
+
+  const note = card.note || '';
+  const example = card.example || note;
+  const exampleCn = card.exampleCn || '';
+
+  let html = `
+    <div class="detail-word-row">
+      <span class="detail-word">${escHtml(card.en)}</span>
+      <span class="detail-check ${checkColor}">${checkIcon}</span>
+    </div>
+    <div class="detail-cn">${escHtml(card.cn)}</div>`;
+
+  if (note) {
+    html += `<div class="detail-note">${escHtml(note)}</div>`;
+  }
+
+  if (example) {
+    // Bold the English word in the example
+    const highlighted = escHtml(example).replace(
+      new RegExp('(' + escHtml(card.en.split(/[\s\/()]+/)[0]) + ')', 'gi'),
+      '<strong>$1</strong>'
+    );
+    html += `<div class="detail-example">
+      <div class="detail-example-en">${highlighted}</div>
+      ${exampleCn ? '<div class="detail-example-cn">' + escHtml(exampleCn) + '</div>' : ''}
+    </div>`;
+  }
+
+  // Show collocations if available
+  if (card.collocations && card.collocations.length > 0) {
+    html += `<div class="detail-example">`;
+    card.collocations.forEach(c => {
+      html += `<div style="font-size:14px;color:var(--label);padding:3px 0;">${escHtml(c)}</div>`;
+    });
+    html += `</div>`;
+  }
+
+  document.getElementById('detail-area').innerHTML = html;
+  document.getElementById('detail-area').scrollTop = 0;
+
+  document.getElementById('phase-judge').style.display = 'none';
+  document.getElementById('phase-detail').style.display = 'flex';
+  document.getElementById('phase-spell').style.display = 'none';
+}
+
+function onDetailNext() {
+  studyIndex++;
+  wordsSinceSpell++;
+
+  // Every SPELL_EVERY words, trigger spelling test
+  if (wordsSinceSpell >= SPELL_EVERY && spellQueue.length > 0) {
+    startSpellTest();
   } else {
-    showCompletion();
+    showJudge();
   }
 }
 
-function prevCard() {
-  if (studyIndex > 0) {
-    studyIndex--;
-    renderCard();
+function onDetailWrong() {
+  // User realizes they were wrong — downgrade this word
+  const card = studyCards[studyIndex];
+  const catId = card._catId || currentCategory.id;
+  reviewCard(catId, card.originalIndex, false);
+  // Adjust counts
+  if (currentJudgment === 'know') { studyKnown--; studyAgain++; }
+  onDetailNext();
+}
+
+// ---------- Phase 3: Spelling Test ----------
+function startSpellTest() {
+  studyPhase = 'spell';
+  spellIndex = 0;
+  spellResults = [];
+  wordsSinceSpell = 0;
+
+  // Shuffle the spell queue for variety
+  shuffleArray(spellQueue);
+
+  document.getElementById('phase-judge').style.display = 'none';
+  document.getElementById('phase-detail').style.display = 'none';
+  document.getElementById('phase-spell').style.display = 'flex';
+
+  showSpellWord();
+}
+
+function showSpellWord() {
+  if (spellIndex >= spellQueue.length) {
+    finishSpellTest();
+    return;
+  }
+
+  const word = spellQueue[spellIndex];
+
+  // Render dots
+  let dots = '';
+  for (let i = 0; i < spellQueue.length; i++) {
+    let cls = 'spell-dot';
+    if (i < spellIndex) cls += spellResults[i] ? ' correct' : ' wrong';
+    else if (i === spellIndex) cls += ' active';
+    dots += `<div class="${cls}"></div>`;
+  }
+  document.getElementById('spell-dots').innerHTML = dots;
+  document.getElementById('spell-cn').textContent = word.cn;
+  document.getElementById('spell-note').textContent = word.note || '';
+  document.getElementById('spell-answer').textContent = '';
+
+  const input = document.getElementById('spell-input');
+  input.value = '';
+  input.className = 'spell-input';
+  input.disabled = false;
+  setTimeout(() => input.focus(), 100);
+}
+
+function checkSpell() {
+  const input = document.getElementById('spell-input');
+  if (input.disabled) { nextSpellWord(); return; }
+
+  const word = spellQueue[spellIndex];
+  const userAnswer = input.value.trim().toLowerCase();
+  const correct = userAnswer === word.en.trim().toLowerCase()
+    || userAnswer === word.en.split(/[\s\/()]+/)[0].trim().toLowerCase();
+
+  input.disabled = true;
+
+  if (correct) {
+    input.className = 'spell-input correct';
+    document.getElementById('spell-answer').innerHTML = '<span style="color:var(--green)">✓ 正确！</span>';
+    spellResults.push(true);
+
+    // Bonus: level +1 for correct spelling
+    const catId = word._catId || currentCategory.id;
+    const key = srsKey(catId, word.originalIndex);
+    if (srsData[key]) {
+      srsData[key].level = Math.min(srsData[key].level + 1, SRS_INTERVALS.length - 1);
+      srsData[key].nextReview = Date.now() + SRS_INTERVALS[srsData[key].level] * 60 * 1000;
+      saveSRS();
+    }
+  } else {
+    input.className = 'spell-input wrong';
+    document.getElementById('spell-answer').innerHTML =
+      '<span style="color:var(--red)">正确答案：</span><strong>' + escHtml(word.en) + '</strong>';
+    spellResults.push(false);
+
+    // Penalty: level back to 1
+    const catId = word._catId || currentCategory.id;
+    reviewCard(catId, word.originalIndex, false);
+  }
+
+  // Auto advance after 1.2s
+  setTimeout(() => nextSpellWord(), 1200);
+}
+
+function nextSpellWord() {
+  spellIndex++;
+  showSpellWord();
+}
+
+function skipSpell() {
+  const input = document.getElementById('spell-input');
+  if (input.disabled) { nextSpellWord(); return; }
+
+  const word = spellQueue[spellIndex];
+  input.disabled = true;
+  input.className = 'spell-input wrong';
+  document.getElementById('spell-answer').innerHTML =
+    '<span style="color:var(--red)">答案：</span><strong>' + escHtml(word.en) + '</strong>';
+  spellResults.push(false);
+
+  const catId = word._catId || currentCategory.id;
+  reviewCard(catId, word.originalIndex, false);
+  setTimeout(() => nextSpellWord(), 1200);
+}
+
+function hintSpell() {
+  const word = spellQueue[spellIndex];
+  const input = document.getElementById('spell-input');
+  if (input.disabled) return;
+
+  // Show first 2 letters as hint
+  const hint = word.en.substring(0, Math.min(2, word.en.length));
+  if (!input.value) input.value = hint;
+  input.focus();
+}
+
+function finishSpellTest() {
+  const correctCount = spellResults.filter(r => r).length;
+  const totalCount = spellResults.length;
+
+  // Clear spell queue
+  spellQueue = [];
+
+  // If there are more words to learn, continue
+  if (studyIndex < studyCards.length) {
+    showJudge();
+  } else {
+    showCompletion();
   }
 }
 
@@ -2061,9 +2418,20 @@ function restartStudy() {
   studyFlipped = false;
   studyKnown = 0;
   studyAgain = 0;
+  wordsSinceSpell = 0;
+  spellQueue = [];
   document.getElementById('completion-view').style.display = 'none';
-  document.getElementById('card-view').style.display = 'flex';
-  renderCard();
+  document.getElementById('study-main').style.display = 'flex';
+  showJudge();
+}
+
+function shuffleCards() {
+  if (!currentCategory) return;
+  shuffleArray(studyCards);
+  studyIndex = 0;
+  wordsSinceSpell = 0;
+  spellQueue = [];
+  showJudge();
 }
 
 function showCompletion() {
@@ -2071,7 +2439,7 @@ function showCompletion() {
   const checkin = getCheckinInfo();
 
   document.getElementById('completion-view').style.display = 'flex';
-  document.getElementById('card-view').style.display = 'none';
+  document.getElementById('study-main').style.display = 'none';
   const total = studyCards.length;
   const pct = total ? Math.round(studyKnown / total * 100) : 0;
 
@@ -2266,26 +2634,17 @@ function init() {
   document.addEventListener('keydown', e => {
     const studyActive = document.getElementById('screen-study').classList.contains('active');
     if (!studyActive) return;
-    if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); flipCard(); }
-    if (e.key === 'ArrowRight') nextCard();
-    if (e.key === 'ArrowLeft') prevCard();
-    if (studyFlipped) {
-      if (e.key === 'y' || e.key === '1') markCard(true);
-      if (e.key === 'n' || e.key === '2') markCard(false);
-    }
-  });
 
-  // Swipe gestures on flashcard
-  let touchStartX = 0;
-  const cardArea = document.getElementById('card-area');
-  cardArea.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; }, { passive: true });
-  cardArea.addEventListener('touchend', e => {
-    const dx = e.changedTouches[0].clientX - touchStartX;
-    if (Math.abs(dx) > 60) {
-      if (dx < 0) nextCard();
-      else prevCard();
+    if (studyPhase === 'judge') {
+      if (e.key === '1' || e.key === 'y') { e.preventDefault(); onJudge('know'); }
+      if (e.key === '2' || e.key === 'f') { e.preventDefault(); onJudge('fuzzy'); }
+      if (e.key === '3' || e.key === 'n') { e.preventDefault(); onJudge('forgot'); }
+    } else if (studyPhase === 'detail') {
+      if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); onDetailNext(); }
+      if (e.key === 'x') { e.preventDefault(); onDetailWrong(); }
     }
-  }, { passive: true });
+    // spell phase uses the input field, no extra shortcuts needed
+  });
 }
 
 init();
